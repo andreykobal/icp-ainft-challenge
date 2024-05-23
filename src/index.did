@@ -1,4 +1,4 @@
-type Result = variant { Ok : string; Err : string };
+type Result = variant { Ok : text; Err : text };
 type NFT = record {
   id : text;
   owner : principal;
@@ -6,11 +6,12 @@ type NFT = record {
 };
 
 service : {
-  "createToken": (text) -> (Result) query;
-  "getCurrentToken": () -> (nat) query;
+  "createToken": (text) -> (Result) update;
+  "getCurrentTokenCount": () -> (nat) query;
   "getOwnedNFTsByWallet": (principal) -> (vec NFT) query;
   "getAllNFTs": () -> (vec NFT) query;
-  "burnToken": (text) -> (Result) query;
+  "burnToken": (text) -> (Result) update;
   "contractURI": () -> (text) query;
-  "tokenURL": (text) -> (opt text) query;
+  "tokenURI": (text) -> (opt text) query;
+  "transferNFT": (principal, text) -> (Result) update;
 }

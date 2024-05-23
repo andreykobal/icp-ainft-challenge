@@ -1,4 +1,4 @@
-import { ic, nat, Principal, update, query } from 'azle';
+import { ic, nat, Principal, update, query, stable } from 'azle';
 import { v4 as uuidv4 } from 'uuid';
 
 type NFT = {
@@ -7,7 +7,7 @@ type NFT = {
     uri: string;
 };
 
-const nfts: Map<string, NFT> = new Map();
+let nfts: Map<string, NFT> = stable(new Map());
 const fixedPrice: nat = 1000000000000000n; // 0.001 ICP
 const maxSupply: nat = 40n;
 
@@ -25,19 +25,13 @@ export function createToken(uri: string): string {
 }
 
 query;
-export function getCurrentToken(): nat {
+export function getCurrentTokenCount(): nat {
     return BigInt(nfts.size);
 }
 
 query;
 export function getOwnedNFTsByWallet(wallet: Principal): NFT[] {
-    const ownedNFTs: NFT[] = [];
-    for (const nft of nfts.values()) {
-        if (nft.owner.toText() === wallet.toText()) {
-            ownedNFTs.push(nft);
-        }
-    }
-    return ownedNFTs;
+    return Array.from(nfts.values()).filter(nft => nft.owner.toText() === wallet.toText());
 }
 
 query;
@@ -52,10 +46,23 @@ export function burnToken(id: string): string {
         return 'NFT not found';
     }
     if (nft.owner.toText() !== ic.caller().toText()) {
-        return 'Caller is not owner nor approved';
+        return 'Caller is not the owner';
     }
     nfts.delete(id);
     return 'NFT burned successfully';
+}
+
+update;
+export function transferNFT(to: Principal, id: string): string {
+    const nft = nfts.get(id);
+    if (!nft) {
+        return 'NFT not found';
+    }
+    if (nft.owner.toText() !== ic.caller().toText()) {
+        return 'Caller is not the owner';
+    }
+    nfts.set(id, { ...nft, owner: to });
+    return 'NFT transferred successfully';
 }
 
 query;
@@ -64,7 +71,7 @@ export function contractURI(): string {
 }
 
 query;
-export function tokenURL(id: string): string | null {
+export function tokenURI(id: string): string | null {
     const nft = nfts.get(id);
     return nft ? nft.uri : null;
 }
